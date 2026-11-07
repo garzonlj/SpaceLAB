@@ -1,0 +1,14 @@
+device: cuda:0
+expected_gpu: NVIDIA T4
+expected_vram_gb_approx: 16
+amp_dtype: float16
+batch_by_model:
+  yolo26n: 4
+  yolo11n: 4
+  yolo26s: 2
+  faster_rcnn_mobilenet: 1
+oom_policy: rollback_epoch_then_halve_batch
+oom_comparison_policy: exclude_from_strict_ranking
+parallel_gpu_jobs: 1
+weights_download_policy: only_inside_explicitly_enabled_budgeted_worker
+timing_policy: synchronize_cuda_at_measurement_boundaries

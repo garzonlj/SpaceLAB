@@ -1,0 +1,7 @@
+id: F02
+model: selected
+freeze: partial
+comparison_variable: freeze
+enabled: false
+cap_seconds: 300
+hypothesis: 'Congelar el backbone real podría regularizar y reducir cómputo.'

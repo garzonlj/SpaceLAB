@@ -1,0 +1,7 @@
+id: H03
+model: selected
+optimizer: AdamW
+comparison_variable: optimizer
+enabled: false
+cap_seconds: 300
+hypothesis: 'Comparar AdamW y SGD conservando LR y receta explícitos.'

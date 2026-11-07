@@ -1,0 +1,8 @@
+id: F03
+model: selected
+freeze: progressive
+unfreeze_epoch: 1
+comparison_variable: freeze
+enabled: false
+cap_seconds: 300
+hypothesis: 'Activar backbone desde época 2 conservando estados ya existentes.'

@@ -1,0 +1,7 @@
+id: H01
+model: selected
+lr: 0.001
+comparison_variable: lr
+enabled: true
+cap_seconds: 300
+hypothesis: 'Comparar LR candidato con 0.0001; no se conoce el óptimo.'

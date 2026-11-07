@@ -1,0 +1,7 @@
+id: O02
+model: faster_rcnn_mobilenet
+batch: 1
+comparison_variable: model
+enabled: false
+cap_seconds: 600
+hypothesis: 'Alternativa de dos etapas inspirada en baseline oficial; receta distinta.'

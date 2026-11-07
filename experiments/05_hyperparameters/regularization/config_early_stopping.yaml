@@ -1,0 +1,6 @@
+id: H08
+model: selected
+patience: 1
+comparison_variable: regularization
+enabled: false
+cap_seconds: 300

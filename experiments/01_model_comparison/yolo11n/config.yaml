@@ -1,0 +1,6 @@
+id: M02
+model: yolo11n
+comparison_variable: model
+enabled: true
+cap_seconds: 900
+hypothesis: 'Referencia de otra arquitectura compacta, con igual receta y datos.'

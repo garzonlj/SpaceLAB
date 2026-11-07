@@ -1,0 +1,7 @@
+id: R01
+model: selected
+imgsz: 640
+comparison_variable: resolution
+enabled: true
+cap_seconds: 600
+hypothesis: 'Referencia de resolución con el candidato seleccionado.'

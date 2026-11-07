@@ -1,0 +1,6 @@
+id: H02
+model: selected
+lr: 0.0001
+comparison_variable: lr
+enabled: true
+cap_seconds: 300

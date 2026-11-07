@@ -1,0 +1,7 @@
+id: H05
+model: selected
+weight_decay: 0.0005
+comparison_variable: regularization
+enabled: false
+cap_seconds: 300
+hypothesis: 'Ablación pequeña de regularización; cambiar una intervención cada vez.'

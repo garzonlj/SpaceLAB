@@ -1,0 +1,7 @@
+id: O01
+model: yolo26s
+batch: 2
+comparison_variable: model
+enabled: false
+cap_seconds: 600
+hypothesis: 'Capacidad adicional; otro batch implica cohorte separada.'

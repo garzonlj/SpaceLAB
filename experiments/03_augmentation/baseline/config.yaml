@@ -1,0 +1,7 @@
+id: A01
+model: selected
+augmentation: baseline
+comparison_variable: augmentation
+enabled: true
+cap_seconds: 240
+hypothesis: 'Referencia con solo letterbox, tensor y normalización.'

@@ -1,0 +1,45 @@
+training:
+  seed: 42
+  model: selected
+  phase: screening
+  epochs: 2
+  imgsz: 640
+  batch: 4
+  workers: 2
+  amp: true
+  augmentation: baseline
+  freeze: full
+  unfreeze_epoch: 1
+  optimizer: AdamW
+  lr: 0.001
+  momentum: 0.9
+  betas: [0.9, 0.999]
+  weight_decay: 0.0005
+  loss_box: 7.5
+  loss_cls: 0.5
+  loss_dfl: 1.5
+  patience: 0
+  oversample_factor: 1
+  confidence_floor: 0.001
+  nms_iou: 0.6
+  tile_size: null
+  tile_overlap: 0.25
+  tile_merge_iou: 0.5
+  benchmark_batches: 4
+  enabled: true
+  cap_seconds: 600
+  comparison_variable: model
+
+paths:
+  dataset: /content/spacelab_dataset
+  dataset_drive_folder_url: https://drive.google.com/drive/folders/1vgxmmpi5zclSXRo_y2GwNIkx35QFqr5t
+  drive_shortcut: /content/drive/MyDrive/spacelab_dataset
+  storage: /content/drive/MyDrive/SpaceLAB_experiments/session_01
+  protocol: protocol.json
+
+budget:
+  maximum_seconds: 5400
+  final_reserve_seconds: 480
+  safety_seconds: 120
+  calibration_ceiling_seconds: 300
+  notes: Absolute persistent wall clock; idle time between notebooks also counts.

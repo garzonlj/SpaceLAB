@@ -1,0 +1,8 @@
+id: FIN
+model: selected
+phase: finalist
+epochs: 6
+enabled: false
+cap_seconds: 600
+comparison_variable: model
+hypothesis: Entrenamiento completo interno posterior a screening; fase no comparable directamente.

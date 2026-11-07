@@ -1,0 +1,6 @@
+id: M01
+model: yolo26n
+comparison_variable: model
+enabled: true
+cap_seconds: 900
+hypothesis: 'Arquitectura compacta candidata; comparar puntaje sin asumir superioridad.'

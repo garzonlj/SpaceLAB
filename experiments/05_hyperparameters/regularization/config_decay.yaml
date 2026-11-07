@@ -1,0 +1,6 @@
+id: H06
+model: selected
+weight_decay: 0.001
+comparison_variable: regularization
+enabled: false
+cap_seconds: 300

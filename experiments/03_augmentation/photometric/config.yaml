@@ -1,0 +1,7 @@
+id: A03
+model: selected
+augmentation: photometric
+comparison_variable: augmentation
+enabled: true
+cap_seconds: 240
+hypothesis: 'Brillo, contraste y saturación moderados; sin geometría adicional.'

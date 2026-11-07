@@ -1,0 +1,7 @@
+id: F01
+model: selected
+freeze: full
+comparison_variable: freeze
+enabled: false
+cap_seconds: 300
+hypothesis: 'Transferencia con backbone, neck y head entrenables.'

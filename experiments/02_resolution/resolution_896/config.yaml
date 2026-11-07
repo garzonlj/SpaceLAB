@@ -1,0 +1,7 @@
+id: R02
+model: selected
+imgsz: 896
+comparison_variable: resolution
+enabled: true
+cap_seconds: 600
+hypothesis: 'Más detalle podría mejorar objetos pequeños; medir costo real.'

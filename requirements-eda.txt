@@ -1,0 +1,10 @@
+numpy>=1.26,<3
+pandas>=2.1,<4
+matplotlib>=3.8,<4
+seaborn>=0.13,<0.14
+Pillow>=10,<14
+opencv-python-headless>=4.8,<6
+PyYAML>=6,<7
+ipykernel>=6,<8
+nbformat>=5.9,<6
+nbclient>=0.10,<0.12

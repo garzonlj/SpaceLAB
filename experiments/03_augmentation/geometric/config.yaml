@@ -1,0 +1,7 @@
+id: A02
+model: selected
+augmentation: geometric
+comparison_variable: augmentation
+enabled: true
+cap_seconds: 240
+hypothesis: 'Rotaciones ortogonales y flips podrían mejorar invariancia cenital.'

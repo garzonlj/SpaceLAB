@@ -1,0 +1,6 @@
+id: H04
+model: selected
+optimizer: SGD
+comparison_variable: optimizer
+enabled: false
+cap_seconds: 300

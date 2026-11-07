@@ -1,0 +1,4 @@
+id: I01
+enabled: false
+action: threshold
+cap_seconds: 300

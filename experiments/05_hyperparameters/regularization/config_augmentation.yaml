@@ -1,0 +1,6 @@
+id: H07
+model: selected
+augmentation: geometric
+comparison_variable: regularization
+enabled: false
+cap_seconds: 300

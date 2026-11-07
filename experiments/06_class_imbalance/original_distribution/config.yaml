@@ -1,0 +1,7 @@
+id: B01
+model: selected
+oversample_factor: 1
+comparison_variable: oversampling
+enabled: false
+cap_seconds: 300
+hypothesis: 'Referencia de exposición a las clases.'

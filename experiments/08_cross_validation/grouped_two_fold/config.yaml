@@ -1,0 +1,6 @@
+id: C01
+model: selected
+comparison_variable: model
+enabled: false
+cap_seconds: 600
+hypothesis: 'Estabilidad entre dos folds solo con grupos verificados.'

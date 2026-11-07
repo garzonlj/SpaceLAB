@@ -32,3 +32,16 @@ venv/
 !.env.example
 Thumbs.db
 .DS_Store
+
+# Local EDA reports, figures, executed notebooks and validation workspace
+/reports/eda/
+/.eda_tmp/
+/runs_spacelab/
+
+# Experimental sessions and per-configuration execution artifacts
+/reports/experiments/*
+!/reports/experiments/README.md
+**/results/
+/artifacts/
+*.zip
+!kit_participantes/*.zip

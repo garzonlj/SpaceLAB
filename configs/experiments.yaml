@@ -1,0 +1,119 @@
+# Configuraciones candidatas; no son una cola de ejecución obligatoria.
+# Estado inicial: pendiente, no ejecutado.
+experiments:
+  - id: H02
+    config: experiments/05_hyperparameters/learning_rate/config_low.yaml
+    enabled: true
+    status: pendiente
+  - id: H04
+    config: experiments/05_hyperparameters/optimizer/config_sgd.yaml
+    enabled: false
+    status: pendiente
+  - id: H06
+    config: experiments/05_hyperparameters/regularization/config_decay.yaml
+    enabled: false
+    status: pendiente
+  - id: H07
+    config: experiments/05_hyperparameters/regularization/config_augmentation.yaml
+    enabled: false
+    status: pendiente
+  - id: H08
+    config: experiments/05_hyperparameters/regularization/config_early_stopping.yaml
+    enabled: false
+    status: pendiente
+  - id: H09
+    config: experiments/05_hyperparameters/regularization/config_freezing.yaml
+    enabled: false
+    status: pendiente
+  - id: I01
+    config: experiments/09_inference/confidence_threshold/config.yaml
+    enabled: false
+    status: pendiente
+  - id: I02
+    config: experiments/09_inference/nms/config.yaml
+    enabled: false
+    status: pendiente
+  - id: I03
+    config: experiments/09_inference/tiled_inference/config.yaml
+    enabled: false
+    status: pendiente
+  - id: FIN
+    config: experiments/10_final_selection/finalist/config.yaml
+    enabled: false
+    status: pendiente
+  - id: M01
+    config: experiments/01_model_comparison/yolo26n/config.yaml
+    enabled: true
+    status: pendiente
+  - id: M02
+    config: experiments/01_model_comparison/yolo11n/config.yaml
+    enabled: true
+    status: pendiente
+  - id: R01
+    config: experiments/02_resolution/resolution_640/config.yaml
+    enabled: true
+    status: pendiente
+  - id: R02
+    config: experiments/02_resolution/resolution_896/config.yaml
+    enabled: true
+    status: pendiente
+  - id: R03
+    config: experiments/02_resolution/resolution_1024/config.yaml
+    enabled: false
+    status: pendiente
+  - id: A01
+    config: experiments/03_augmentation/baseline/config.yaml
+    enabled: true
+    status: pendiente
+  - id: A02
+    config: experiments/03_augmentation/geometric/config.yaml
+    enabled: true
+    status: pendiente
+  - id: A03
+    config: experiments/03_augmentation/photometric/config.yaml
+    enabled: true
+    status: pendiente
+  - id: F01
+    config: experiments/04_fine_tuning/full_fine_tuning/config.yaml
+    enabled: false
+    status: pendiente
+  - id: F02
+    config: experiments/04_fine_tuning/partial_freezing/config.yaml
+    enabled: false
+    status: pendiente
+  - id: F03
+    config: experiments/04_fine_tuning/progressive_unfreezing/config.yaml
+    enabled: false
+    status: pendiente
+  - id: H01
+    config: experiments/05_hyperparameters/learning_rate/config.yaml
+    enabled: true
+    status: pendiente
+  - id: H03
+    config: experiments/05_hyperparameters/optimizer/config.yaml
+    enabled: false
+    status: pendiente
+  - id: H05
+    config: experiments/05_hyperparameters/regularization/config.yaml
+    enabled: false
+    status: pendiente
+  - id: B01
+    config: experiments/06_class_imbalance/original_distribution/config.yaml
+    enabled: false
+    status: pendiente
+  - id: B02
+    config: experiments/06_class_imbalance/controlled_oversampling/config.yaml
+    enabled: false
+    status: pendiente
+  - id: O01
+    config: experiments/07_optional_models/yolo26s/config.yaml
+    enabled: false
+    status: pendiente
+  - id: O02
+    config: experiments/07_optional_models/faster_rcnn_mobilenet/config.yaml
+    enabled: false
+    status: pendiente
+  - id: C01
+    config: experiments/08_cross_validation/grouped_two_fold/config.yaml
+    enabled: false
+    status: pendiente

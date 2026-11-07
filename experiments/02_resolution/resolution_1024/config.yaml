@@ -1,0 +1,7 @@
+id: R03
+model: selected
+imgsz: 1024
+comparison_variable: resolution
+enabled: false
+cap_seconds: 600
+hypothesis: 'Hipótesis de escala sugerida por el EDA; requiere calibración.'
