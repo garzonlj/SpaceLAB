@@ -95,6 +95,13 @@ def freeze_selection(run, protocol, destination, inference_run=None):
         evaluation = read_json(run/"metrics/official_score.json")
     if evaluation.get("evaluation_split") != "internal_val":
         raise ValueError("Solo se congela una receta seleccionada con validación interna")
+    recipe = evaluation.get("inference_config",manifest["config"])
+    if recipe.get("ensemble_run"):
+        extra = Path(recipe["ensemble_run"])
+        extra_manifest = read_json(extra/"experiment_manifest.json")
+        if (extra_manifest["status"] != "completado" or extra_manifest["protocol_id"] != protocol["protocol_id"]
+            or digest(extra/"checkpoints/best.pt") != recipe["ensemble_checkpoint_sha256"]):
+            raise ValueError("No se puede congelar un ensemble con checkpoint incompatible.")
     # Freeze hash, checkpoint, threshold and inference configuration BEFORE any test.
     frozen = {"created_at":time.time(),"config":manifest["config"],"protocol_id":protocol["protocol_id"],
         "checkpoint":str(checkpoint.resolve()),"checkpoint_sha256":digest(checkpoint),

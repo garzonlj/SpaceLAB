@@ -16,7 +16,7 @@ def official_modules():
     return importlib.import_module("evaluar"),importlib.import_module("formato_envio")
 
 
-def score_predictions(root, records, preds, *, threshold=None, tune=True):
+def score_predictions(root, records, preds, *, threshold=None, tune=True, thresholds=None):
     ev,_ = official_modules()
     gt = {r["id"]:read_labels(Path(root)/r["label"]) for r in records}
     if not gt or any(r["image"].startswith("images/oculto/") for r in records):
@@ -26,7 +26,7 @@ def score_predictions(root, records, preds, *, threshold=None, tune=True):
     env = ev.Envio(preds=preds)
     pc = ev.preparar(gt,env)
     if tune:
-        threshold,_ = ev.barrer_umbral(pc)
+        threshold,_ = ev.barrer_umbral(pc, thresholds)
     if threshold is None:
         raise ValueError("Evaluación final necesita umbral previamente congelado")
     result = ev.evaluar(gt,env,umbral=float(threshold))

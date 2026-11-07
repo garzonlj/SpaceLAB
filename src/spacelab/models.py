@@ -51,6 +51,7 @@ class Detector:
             self.net.roi_heads.box_predictor = FastRCNNPredictor(self.net.roi_heads.box_predictor.cls_score.in_features,6)
             self.backbone_prefixes = ("backbone.body.",)
             self.end2end = False
+        self.native_end2end = self.end2end
 
     def to(self, device):
         self.net.to(device)
@@ -127,6 +128,11 @@ class Detector:
                 from ultralytics.utils.nms import non_max_suppression
             except ImportError:
                 from ultralytics.utils.ops import non_max_suppression
+            head_mode = self.config.get("yolo_head", "native")
+            if head_mode not in ("native", "one2many", "one2one"):
+                raise ValueError("Cabeza YOLO desconocida")
+            self.net.end2end = self.native_end2end if head_mode == "native" else head_mode == "one2one"
+            self.end2end = bool(self.net.end2end)
             raw = self.net(images)
             result = non_max_suppression(raw,conf_thres=confidence,iou_thres=nms_iou,
                 max_det=300,nc=5,end2end=self.end2end,max_nms=100000,max_time_img=10.)
@@ -135,3 +141,15 @@ class Detector:
         self.net.roi_heads.nms_thresh = nms_iou
         result = self.net(list(images))
         return [torch.cat([(r["labels"]-1).float()[:,None],r["boxes"],r["scores"][:,None]],dim=1).cpu().numpy() for r in result]
+
+
+class DetectorEnsemble:
+    """Union of two model predictions; image-level class NMS merges the boxes."""
+    def __init__(self, detectors):
+        self.detectors = detectors
+        self.net = detectors[0].net
+
+    def predict(self, images, confidence=None, nms_iou=None):
+        outputs = [d.predict(images, confidence, nms_iou) for d in self.detectors]
+        return [np.concatenate([output[i] for output in outputs], axis=0)
+                for i in range(len(images))]

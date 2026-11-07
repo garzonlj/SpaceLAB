@@ -21,6 +21,8 @@ os.environ.setdefault("MPLCONFIGDIR", str(REPO / ".eda_tmp/matplotlib"))
 os.environ.setdefault("OMP_NUM_THREADS", "4")
 os.environ.setdefault("MKL_NUM_THREADS", "4")
 os.environ.setdefault("PYTHONIOENCODING", "utf-8")
+if "--inference-device" in sys.argv and sys.argv[sys.argv.index("--inference-device")+1] == "cpu":
+    os.environ["CUDA_VISIBLE_DEVICES"] = ""
 for _stream in (sys.stdout, sys.stderr):
     if hasattr(_stream, "reconfigure"):
         _stream.reconfigure(encoding="utf-8", errors="replace")
@@ -42,12 +44,15 @@ def main():
     parser.add_argument("--deadline", help="Absolute ISO datetime including UTC offset.")
     parser.add_argument("--quick", action="store_true", help="Prioritize architecture comparison and final delivery.")
     parser.add_argument("--focus-nano", action="store_true", help="Continue the trained nano on all internal training data.")
+    parser.add_argument("--refine-inference", action="store_true", help="Validate threshold/NMS/TTA/ensemble candidates before freezing.")
+    parser.add_argument("--finalize-only", action="store_true", help="Complete test/submission using the existing immutable selection.")
+    parser.add_argument("--inference-device", choices=("cuda","cpu"), default="cuda")
     parser.add_argument("--adopt-run", help="Wait for the existing worker after replacing its supervisor.")
     args = parser.parse_args()
     root = verify_layout(args.dataset)
     storage = Path(args.storage).resolve()
     storage.mkdir(parents=True, exist_ok=True)
-    env = environment()
+    env = environment() if args.inference_device == "cuda" else {"gpu":"CPU inference; model trained on GTX 1650","torch":torch.__version__}
     torch.set_num_threads(min(4, os.cpu_count() or 1))
     write_json(storage / "environment.json", env)
     print("Dataset:", root, "\nResultados:", storage, "\nGPU:", env["gpu"], flush=True)
@@ -90,6 +95,8 @@ def main():
         return float("inf") if stop_at is None else max(0, stop_at-time.time()-reserve)
 
     def job(key, action, payload, cap=86400, final=False):
+        if action in ("test","submission") and args.inference_device == "cpu":
+            payload = {**payload,"device":"cpu"}
         previous = state["jobs"].get(key)
         if previous and previous["status"] == "completado":
             request_path = Path(previous["run"]) / "request.json"
@@ -109,6 +116,27 @@ def main():
                 print(log.read_text(encoding="utf-8", errors="replace")[-4000:], flush=True)
         return result
 
+    if args.finalize_only:
+        frozen = read_json(storage/"frozen_selection.json")
+        selected_run = str(Path(frozen["checkpoint"]).parents[1])
+        best_inference = read_json(storage/"inference_search_selection.json")["validation_run"]
+        confirmed = read_json(Path(best_inference)/"metrics/official_score.json")
+        if confirmed["total"]["score"] != frozen["selected_internal_score"]:
+            raise ValueError("La receta confirmada no coincide con la selección congelada.")
+        test_result = job("official_test","test",{},final=True)
+        submission_result = job("submission","submission",{},final=True)
+        collect(storage).to_csv(storage/"comparison.csv",index=False)
+        summary = {"finished_at":datetime.now().isoformat(),"selected_run":selected_run,
+                   "best_inference":best_inference,"omissions":state["omissions"],
+                   "deadline":args.deadline,"quick_plan":True,
+                   "test_status":test_result["status"],"submission_status":submission_result["status"]}
+        if test_result["status"] != "completado" or submission_result["status"] != "completado":
+            write_json(storage/"pipeline_incomplete.json",summary)
+            raise RuntimeError("La entrega final no se completó; revisar logs.")
+        write_json(storage/"pipeline_completed.json",summary)
+        print("ENTREGA FINAL COMPLETADA",flush=True)
+        return
+
     def omission(key, reason):
         print("OMITIDO", key, reason, flush=True)
         state["omissions"].append({"id": key, "reason": reason})
@@ -125,7 +153,12 @@ def main():
                 omission(key, "Calibración fallida; revisar worker.log.")
                 return None
         projected = estimate(cfg, protocol, read_json(calibration))
-        if args.quick and projected + 240 > available():
+        prior = state["jobs"].get(key)
+        already_trained = False
+        if prior and prior["status"] == "completado":
+            prior_request = read_json(Path(prior["run"])/"request.json")
+            already_trained = prior_request["payload"] == {"dataset":str(root),"config":cfg,"enable_optional":True}
+        if args.quick and not already_trained and projected + 240 > available():
             omission(key, "La proyección más validación no cabe antes de la reserva de entrega.")
             return None
         result = job(key, "train", {"config": cfg, "enable_optional": True}, cap=max(86400, projected * 3))
@@ -202,11 +235,20 @@ def main():
         finalist_cfg.update(epochs=12, initial_checkpoint=str(initial_checkpoint.resolve()),
                             initial_checkpoint_sha256=digest(initial_checkpoint),
                             loss_schedule="native_epoch")
+    previous_final = state["jobs"].get("FIN")
+    final_already_completed = bool(previous_final and previous_final["status"] == "completado")
+    if final_already_completed:
+        previous_request = read_json(Path(previous_final["run"])/"request.json")
+        previous_config = previous_request["payload"]["config"]
+        if previous_config["model"] == finalist_cfg["model"]:
+            finalist_cfg = previous_config
+        else:
+            final_already_completed = False
     calibration = storage / "calibration" / (calibration_key(finalist_cfg) + ".json")
     if not calibration.exists():
         job("finalist_calibration", "benchmark", {"config": finalist_cfg, "enable_optional": True}, cap=1800)
     can_refit = calibration.exists()
-    if args.quick and can_refit:
+    if args.quick and can_refit and not final_already_completed:
         while finalist_cfg["epochs"] > 1 and estimate(finalist_cfg,protocol,read_json(calibration)) + 240 > available():
             finalist_cfg["epochs"] -= 1
         can_refit = estimate(finalist_cfg,protocol,read_json(calibration)) + 240 <= available()
@@ -222,7 +264,10 @@ def main():
             final_run = fin["run"]
     base_val = next(v["run"] for k, v in state["jobs"].items() if k.endswith("_validate") and v["status"] == "completado" and read_json(Path(v["run"]) / "validation_provenance.json")["training_run"] == final_run)
     inference_results = [base_val]
-    if args.focus_nano:
+    if args.refine_inference:
+        print("Umbral/NMS/TTA/ensemble se evaluarán en la búsqueda de inferencia.",flush=True)
+        threshold = {"status": "omitido"}
+    elif args.focus_nano:
         omission("I01", "El umbral ya se optimizó con la validación interna del candidato.")
         threshold = {"status": "omitido"}
     else:
@@ -230,7 +275,9 @@ def main():
     if threshold["status"] == "completado":
         inference_results.append(threshold["run"])
     model_name = read_json(Path(final_run) / "experiment_manifest.json")["config"]["model"]
-    if args.quick:
+    if args.quick and args.refine_inference:
+        print("NMS se probará con una cabeza YOLO operativa dentro de la búsqueda.",flush=True)
+    elif args.quick:
         omission("I02", "Se conserva la receta validada para priorizar la entrega en plazo.")
     elif model_name.startswith("yolo26"):
         omission("I02", "El detector end-to-end seleccionado no aplica NMS convencional.")
@@ -247,6 +294,10 @@ def main():
     if tiled["status"] == "completado":
         inference_results.append(tiled["run"])
     best_inference = max(inference_results, key=score)
+    if args.refine_inference:
+        from spacelab.refine_inference import refine
+        best_inference = refine(storage,root,protocol,final_run,best_inference,job,stop_at,
+                                ensemble_run=best_screening)
     if not (storage / "frozen_selection.json").exists():
         freeze_selection(final_run, protocol, storage / "frozen_selection.json", best_inference)
     test_result = job("official_test", "test", {}, final=True)

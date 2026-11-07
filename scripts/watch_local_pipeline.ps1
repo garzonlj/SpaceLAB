@@ -22,6 +22,19 @@ while ($true) {
                 $log = Join-Path $latest.run 'worker.log'
                 if (Test-Path -LiteralPath $log) { Get-Content -LiteralPath $log -Encoding UTF8 -Tail 5 }
             }
+            $lastTrain = $budget.jobs | Where-Object { $_.action -eq 'train' -and $_.run } | Select-Object -Last 1
+            if ($lastTrain) {
+                $historyPath = Join-Path $lastTrain.run 'metrics/training_history.csv'
+                if (Test-Path -LiteralPath $historyPath) {
+                    $history = @(Import-Csv -LiteralPath $historyPath -Encoding UTF8)
+                    if ($history.Count -gt 0) {
+                        $best = $history | Sort-Object { [double]::Parse($_.score, [cultureinfo]::InvariantCulture) } -Descending | Select-Object -First 1
+                        Write-Host ('Mejor SCORE de validacion interna: ' + $best.score + ' | epoca ' + $best.epoch)
+                        $history | Select-Object epoch,score,map50_95,f1_macro | Format-Table -AutoSize
+                        Write-Host 'Evaluador oficial sobre validacion interna; el ranking oculto puede variar.'
+                    }
+                }
+            }
         } catch { Write-Host 'Actualizando estado...' }
     }
     if (Test-Path -LiteralPath (Join-Path $sessionPath 'pipeline_completed.json')) {

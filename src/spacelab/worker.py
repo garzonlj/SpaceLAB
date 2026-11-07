@@ -79,10 +79,13 @@ def run(request):
         predictions_source = provenance.get("predictions_source",str(source/"predictions"))
         preds = ev.leer_envio(predictions_source).preds
         records = select_records(protocol,"val")
-        result,gt,pc = score_predictions(root,records,preds,tune=True)
-        result.update(evaluation_split="internal_val",inference_config=provenance["inference_config"])
+        inference_config = dict(provenance["inference_config"])
+        if p.get("threshold_grid") is not None:
+            inference_config["threshold_grid"] = p["threshold_grid"]
+        result,gt,pc = score_predictions(root,records,preds,tune=True,thresholds=inference_config.get("threshold_grid"))
+        result.update(evaluation_split="internal_val",inference_config=inference_config)
         save_evaluation(folder,root,records,preds,result,gt,pc,{"inference_seconds":0,"cached_predictions":True})
-        write_json(folder/"validation_provenance.json",{**provenance,"predictions_source":predictions_source})
+        write_json(folder/"validation_provenance.json",{**provenance,"inference_config":inference_config,"predictions_source":predictions_source})
         return {"status":"completado","metrics":result,"run":str(folder)}
     if action == "cross_validation":
         folds = protocol.get("grouped_folds")
@@ -124,7 +127,7 @@ def evaluate_or_submit(request,root,protocol,deadline):
     from .checkpointing import restore
     from .evaluation import official_modules, score_predictions, save_evaluation
     from .inference import predictions
-    from .models import Detector
+    from .models import Detector, DetectorEnsemble
     from .splits import select_records
     from .training import environment
     folder = Path(request["run"])
@@ -162,25 +165,50 @@ def evaluate_or_submit(request,root,protocol,deadline):
             protocol = manifest["protocol_snapshot"]
         checkpoint = str(source/"checkpoints/best.pt")
         inference_config = {**config,**p.get("inference_overrides",{})}
-        allowed = {"nms_iou","tile_size","tile_overlap","tile_merge_iou","confidence_floor"}
+        allowed = {"nms_iou","tile_size","tile_overlap","tile_merge_iou","confidence_floor",
+                   "yolo_head","tta","post_nms_iou","inference_imgsz","threshold_grid",
+                   "ensemble_run","ensemble_checkpoint_sha256"}
         if set(p.get("inference_overrides",{}))-allowed:
             raise ValueError("La ablación de inferencia no puede modificar modelo, datos o receta de entrenamiento")
         threshold = None
         records = select_records(protocol,"val")
-    detector = Detector(config,pretrained=False).to("cuda")
+        if p.get("probe_ids") is not None:
+            probe_ids = set(p["probe_ids"])
+            if not probe_ids or not probe_ids <= {r["id"] for r in records}:
+                raise ValueError("Las pruebas de inferencia solo pueden usar validación interna.")
+            records = [r for r in records if r["id"] in probe_ids]
+    device = p.get("device","cuda")
+    if device not in ("cuda","cpu"):
+        raise ValueError("Dispositivo de inferencia desconocido")
+    print("Dispositivo de inferencia:",device,flush=True)
+    detector = Detector(config,pretrained=False).to(device)
+    ensemble_detector = None
     try:
         restore(checkpoint,detector,config,protocol["protocol_id"])
         detector.config = inference_config
-        if detector.end2end and inference_config["nms_iou"] != config["nms_iou"]:
+        if detector.end2end and inference_config.get("yolo_head","native") != "one2many" and inference_config["nms_iou"] != config["nms_iou"]:
             raise ValueError("NMS IoU no es operativo para salida end-to-end; no comparar como cambio efectivo")
-        torch.cuda.reset_peak_memory_stats()
+        if inference_config.get("ensemble_run"):
+            extra_run = Path(inference_config["ensemble_run"])
+            extra_manifest = read_json(extra_run/"experiment_manifest.json")
+            extra_checkpoint = extra_run/"checkpoints/best.pt"
+            if (extra_manifest["protocol_id"] != protocol["protocol_id"]
+                or extra_manifest["status"] != "completado"
+                or digest(extra_checkpoint) != inference_config["ensemble_checkpoint_sha256"]):
+                raise ValueError("Checkpoint del ensemble incompatible o modificado")
+            ensemble_detector = Detector(extra_manifest["config"],pretrained=False).to(device)
+            restore(extra_checkpoint,ensemble_detector,extra_manifest["config"],protocol["protocol_id"])
+            ensemble_detector.config = inference_config
+        if device == "cuda":
+            torch.cuda.reset_peak_memory_stats()
         if not final:
             # Independently regenerate actual history plots alongside this evaluation.
             history = Path(p["run"])/"metrics/training_history.csv"
             if history.exists():
                 (folder/"metrics").mkdir(exist_ok=True)
                 shutil.copy2(history,folder/"metrics/training_history.csv")
-        preds,infer_time = predictions(detector,root,records,inference_config,deadline,folder/"predictions")
+        predictor = DetectorEnsemble([detector,ensemble_detector]) if ensemble_detector is not None else detector
+        preds,infer_time = predictions(predictor,root,records,inference_config,deadline,folder/"predictions")
         deadline.check(10)
         if action=="submission":
             _,fe = official_modules()
@@ -188,26 +216,32 @@ def evaluate_or_submit(request,root,protocol,deadline):
             if not fe.verificar(str(folder/"submission.zip"),str(root/"images/oculto")):
                 raise ValueError("ZIP rechazado por el verificador oficial")
             return {"status":"completado","zip":str(folder/"submission.zip")}
-        result,gt,pc = score_predictions(root,records,preds,threshold=threshold,tune=not final)
-        result["evaluation_split"] = "official_test" if final else "internal_val"
+        result,gt,pc = score_predictions(root,records,preds,threshold=threshold,tune=not final,
+                                       thresholds=inference_config.get("threshold_grid"))
+        result["evaluation_split"] = "official_test" if final else ("internal_val_probe" if p.get("probe_ids") else "internal_val")
         result["inference_config"] = inference_config
         train_runtime_path = Path(p["run"])/"metrics/training_runtime.json" if not final else None
-        runtime = {"inference_seconds":infer_time,"peak_vram_bytes":torch.cuda.max_memory_allocated(),
-            "environment":environment(),"training_runtime":read_json(train_runtime_path)
+        runtime = {"inference_seconds":infer_time,"peak_vram_bytes":torch.cuda.max_memory_allocated() if device=="cuda" else 0,
+            "environment":environment() if device=="cuda" else {"device":"cpu","torch":torch.__version__},"training_runtime":read_json(train_runtime_path)
             if train_runtime_path and train_runtime_path.exists() else None}
-        save_evaluation(folder,root,records,preds,result,gt,pc,runtime)
+        if p.get("fast_metrics_only") and not final:
+            write_json(folder/"metrics/official_score.json",result)
+            write_json(folder/"metrics/runtime.json",runtime)
+        else:
+            save_evaluation(folder,root,records,preds,result,gt,pc,runtime)
         if not final:
             # Each validation remains immutable; source gets only a pointer and
             # score for registry selection, never overwritten prediction artifacts.
-            if action=="validate":
+            if action=="validate" and not p.get("probe_ids"):
                 target = Path(p["run"])/"metrics/official_score.json"
                 if not target.exists():
                     write_json(target,result)
             write_json(folder/"validation_provenance.json",{"training_run":p["run"],"checkpoint_sha256":digest(checkpoint),
-                "protocol_id":protocol["protocol_id"],"inference_config":inference_config})
+                "protocol_id":protocol["protocol_id"],"inference_config":inference_config,
+                "validation_ids":[r["id"] for r in records]})
         return {"status":"completado","run":str(folder),"metrics":result}
     finally:
-        del detector
+        del detector,ensemble_detector
         gc.collect()
         torch.cuda.empty_cache()
 
@@ -218,7 +252,8 @@ def main():
     try:
         # Independent GPU lock prevents an orphan worker from sharing the T4
         # with another notebook if its original supervisor kernel disappeared.
-        with FileLock(str(Path(request["storage"])/"gpu.lock"),timeout=0):
+        lock_name = "cpu_delivery.lock" if request["payload"].get("device") == "cpu" else "gpu.lock"
+        with FileLock(str(Path(request["storage"])/lock_name),timeout=0):
             Deadline(request["stop_at"]).check()
             result = run(request)
         write_json(folder/"result.json",result)
