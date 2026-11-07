@@ -1,0 +1,29 @@
+SpaceLAB · Hackatón FAC+PUJ · GeoVision Colombia — Kit de participantes
+=========================================================================
+
+Archivos:
+  reto_spacelab.pdf            el documento del reto: tarea, datos, formato de envío, puntaje y reglas. LÉALO PRIMERO.
+  baseline_colab.ipynb         baseline 1, YOLO26 (Ultralytics), para Google Colab o Kaggle
+  entrenar_baseline.py         lo mismo como script, para su propio PC
+  baseline_frcnn_colab.ipynb   baseline 2, Faster R-CNN (torchvision, PyTorch puro), para Google Colab o Kaggle
+  entrenar_baseline_frcnn.py   lo mismo como script, para su propio PC
+  evaluar.py                   el evaluador oficial (el mismo que usa el leaderboard)
+  formato_envio.py             ayuda para armar y revisar el ZIP de envío desde CUALQUIER modelo
+
+Cómo empezar:
+1. Lea  reto_spacelab.pdf.
+2. Descargue  spacelab_dataset.zip  (los datos).
+3. Abra uno de los dos notebooks en Google Colab o Kaggle con GPU T4 y ejecútelo: entrena un modelo,
+   le da su puntaje local en test y genera un ZIP listo para enviar.
+4. Revise el ZIP y súbalo en la página del leaderboard con la clave impresa en la tarjeta de su equipo:
+     python formato_envio.py verificar --envio su_envio.zip --imagenes spacelab_dataset/images/oculto
+5. Mejore su modelo y vuelva a enviar. Para medirse sin gastar envíos:
+     python evaluar.py --gt spacelab_dataset/labels/test --envio mis_predicciones.zip --barrer-umbral
+
+Los baselines son solo puntos de partida para verificar que su flujo funciona de punta a punta.
+No son una recomendación: pueden usar cualquier modelo o framework (MMDetection, Detectron2, torchvision,
+RT-DETR, cualquier versión de YOLO, etc.). Si usa otro, formato_envio.py convierte sus cajas al formato oficial:
+     from formato_envio import escribir_txt, crear_zip
+
+Puntaje = 0,7 × mAP@0.5:0.95 + 0,3 × F1macro@0.5. El leaderboard muestra el puntaje en una parte del
+conjunto oculto; el ganador se decide con la otra parte. Confíe en su validación con test.

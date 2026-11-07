@@ -1,0 +1,14 @@
+# SpaceLAB Hackatón FAC+PUJ · GeoVision Colombia
+# Rutas relativas a la carpeta de este archivo (Ultralytics la usa como raíz).
+# 'val' apunta al split test (con etiquetas) para validar localmente.
+train: images/train
+val: images/test
+test: images/test
+
+nc: 5
+names:
+  0: small_boat
+  1: cargo_ship
+  2: fishing_vessel
+  3: warship
+  4: work_vessel

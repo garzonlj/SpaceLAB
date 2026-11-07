@@ -1,0 +1,34 @@
+﻿# Dataset images (each teammate keeps a local copy)
+/spacelab_dataset/images/
+/spacelab_dataset.zip
+*.[jJ][pP][gG]
+*.[jJ][pP][eE][gG]
+*.[pP][nN][gG]
+*.[wW][eE][bB][pP]
+*.[bB][mM][pP]
+*.[tT][iI][fF]
+*.[tT][iI][fF][fF]
+
+# Model weights and generated training outputs
+*.pt
+*.pth
+*.ckpt
+*.onnx
+/runs/
+/wandb/
+
+# Python environments and caches
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.ipynb_checkpoints/
+.pytest_cache/
+*.cache
+
+# Local secrets and OS files
+.env
+.env.*
+!.env.example
+Thumbs.db
+.DS_Store

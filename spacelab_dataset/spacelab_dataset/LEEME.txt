@@ -1,0 +1,9 @@
+SpaceLAB · Hackatón FAC+PUJ · GeoVision Colombia — Dataset del reto
+
+images/train + labels/train : entrenamiento (formato YOLO: clase xc yc w h, normalizado)
+images/test  + labels/test  : validación local (misma distribución que el conjunto oculto)
+images/oculto               : conjunto de evaluación SIN etiquetas. Entregue un .txt por imagen
+                              (clase xc yc w h confianza) dentro de un ZIP, más umbral.txt opcional.
+
+Clases: 0=small_boat, 1=cargo_ship, 2=fishing_vessel, 3=warship, 4=work_vessel
+Detalles completos, métricas y reglas: documento del reto.
